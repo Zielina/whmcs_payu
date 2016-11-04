@@ -1,6 +1,15 @@
 <?php
 require(dirname(__FILE__) . '/callback/payu/lib/openpayu.php');
+//include('C:/wamp64/www/sklep/vhmcs/whmcs/modules/gateways/callback/payu/lib/openpayu.php');
 
+
+function payu_MetaData()
+{
+    return array(
+        'DisplayName' => 'PayU Payment  Module',
+        'APIVersion' => '1.1', // Use API Version 1.1
+    );
+}
 
 function payu_config()
 {
@@ -12,20 +21,27 @@ function payu_config()
             'Value' => 'PayU',
         ),
         // a text field type allows for single line text input
-        'accountID' => array(
-            'FriendlyName' => 'Account ID',
+        'POS' => array(
+            'FriendlyName' => 'POS ID',
             'Type' => 'text',
             'Size' => '25',
             'Default' => '',
             'Description' => 'Enter your account ID here',
         ),
-        // a password field type allows for masked text input
-        'secretKey' => array(
-            'FriendlyName' => 'Secret Key',
+        'FirstKey' => array(
+            'FriendlyName' => 'FirstKey',
             'Type' => 'password',
             'Size' => '25',
             'Default' => '',
-            'Description' => 'Enter secret key here',
+            'Description' => 'Enter First secret key here',
+        ),
+        // a password field type allows for masked text input
+        'SecondKey' => array(
+            'FriendlyName' => 'Second Key',
+            'Type' => 'password',
+            'Size' => '25',
+            'Default' => '',
+            'Description' => 'Enter Second secret key here',
         ),
     );
 }
@@ -34,13 +50,21 @@ function payu_config()
 function payu_link($params)
 {
 
-
-    $pos = $params['accountID'];
-    $key = $params['secretKey'];
+    $pos = $params['POS'];
+    $key = $params['SecondKey'];
+    $firstKey=$params['FirstKey'];
+    $version=payu_MetaData();
 	
 OpenPayU_Configuration::setEnvironment('secure');
 OpenPayU_Configuration::setMerchantPosId($pos);
 OpenPayU_Configuration::setSignatureKey($key);
+    if (!empty($firstKey)) {
+        OpenPayU_Configuration::setOauthClientId($pos);
+        OpenPayU_Configuration::setOauthClientSecret($params[FirstKey]);
+
+    }
+
+    OpenPayU_Configuration::setSender('Plugin ver ' . $version[APIVersion]);
 
    $order = array();
    // var_dump($params);
@@ -53,7 +77,8 @@ OpenPayU_Configuration::setSignatureKey($key);
     $order['currencyCode'] = 'PLN';
     //$order['currencyCode'] =$params['currency'];
     $order['totalAmount'] = $params['amount'] * 100;
-    $order['additionalDescription'] = $params["invoicenum"];
+    $order['additionalDescription'] = $params["invoiceid"];
+
 
     $order['products'][0]['name'] = $params["description"];
     $order['products'][0]['unitPrice'] = $params['amount'] * 100;;
@@ -84,10 +109,11 @@ OpenPayU_Configuration::setSignatureKey($key);
     if ($payu_code->getStatus() == 'SUCCESS') {
        // header($respond);
         die('<script type="text/javascript">window.location.href="' . $respond . '";</script>');
-        exit();
+
     }
 
 }
+
 
 
 
